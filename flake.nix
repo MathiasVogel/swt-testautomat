@@ -14,6 +14,7 @@
         devShells.default = pkgs.mkShell {
           buildInputs = [
             pkgs.jdk
+            pkgs.maven
           ];
 
           shellHook = ''
