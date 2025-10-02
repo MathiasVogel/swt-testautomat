@@ -11,23 +11,9 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class WikiPhilosophyFirefox {
-
-    private static final int DEFAULT_MAX_STEPS = 50;
-
-    public static void main(String[] args) {
-        int maxSteps = (args.length > 1) ? parseIntSafe(args[1], DEFAULT_MAX_STEPS) : DEFAULT_MAX_STEPS;
-        boolean headless = args.length > 2 && "headless".equalsIgnoreCase(args[2]);
-        String startUrl = (args.length > 0 && args[0] != null && !args[0].isBlank())
-                ? args[0]
-                : "https://de.wikipedia.org/wiki/Spezial:Zuf%C3%A4llige_Seite";
-
-        Result r = runGame(startUrl, maxSteps, headless);
-        System.out.printf("Beendet nach %d Schritten (%s) bei: %s%n", r.steps, r.reason, r.lastTitle);
-        // Optional: Pfad ausgeben
-        r.path.forEach(System.out::println);
-    }
 
     /**
      * Testbare Kernlogik: führt das Spiel aus und liefert Reason + Pfad zurück.
@@ -79,7 +65,8 @@ public class WikiPhilosophyFirefox {
                 }
 
                 if (nextHref.startsWith("/")) {
-                    String base = currentUrl.split("/wiki/")[0];
+                    String base;
+                    base = Objects.requireNonNull(currentUrl).split("/wiki/")[0];
                     nextHref = base + nextHref;
                 }
 
@@ -91,7 +78,7 @@ public class WikiPhilosophyFirefox {
             driver.quit();
         }
         // Fallback (sollte nicht erreicht werden)
-        return new Result(Reason.MAX_STEPS, path, Math.max(step, 0), lastTitle);
+        return new Result(Reason.MAX_STEPS, path, step, lastTitle);
     }
 
     // -- Hilfsfunktionen & JS (unverändert) --
@@ -103,56 +90,49 @@ public class WikiPhilosophyFirefox {
         return idx > 0 ? pageTitle.substring(0, idx) : pageTitle;
     }
 
-    private static int parseIntSafe(String s, int fallback) {
-        try {
-            return Integer.parseInt(s);
-        } catch (Exception e) {
-            return fallback;
-        }
-    }
-
     private static final String FIRST_VALID_LINK_FINDER_JS =
-            "const content = document.querySelector('#mw-content-text');\n" +
-                    "if (!content) return null;\n" +
-                    "const clone = content.cloneNode(true);\n" +
-                    "const blacklistSelectors = [\n" +
-                    "  '.infobox', '.vertical-navbox', '.navbox', '.toc', '.thumb', '.references', '.reflist',\n" +
-                    "  '.hatnote', '.metadata', '.mw-empty-elt', 'table', 'style', 'sup.reference', '.ambox'\n" +
-                    "];\n" +
-                    "blacklistSelectors.forEach(sel => clone.querySelectorAll(sel).forEach(e => e.remove()));\n" +
-                    "function isItalic(el){\n" +
-                    "  while (el) {\n" +
-                    "    const tag = el.tagName ? el.tagName.toLowerCase() : '';\n" +
-                    "    const style = el.ownerDocument.defaultView.getComputedStyle(el);\n" +
-                    "    if (tag === 'i' || tag === 'em' || style.fontStyle === 'italic') return true;\n" +
-                    "    el = el.parentElement;\n" +
-                    "  }\n" +
-                    "  return false;\n" +
-                    "}\n" +
-                    "const blocks = clone.querySelectorAll('p, ul, ol');\n" +
-                    "let depth = 0;\n" +
-                    "function scanNode(node){\n" +
-                    "  if (node.nodeType === Node.TEXT_NODE){\n" +
-                    "    const t = node.textContent;\n" +
-                    "    for (let ch of t){ if (ch === '(') depth++; else if (ch === ')' && depth>0) depth--; }\n" +
-                    "  } else if (node.nodeType === Node.ELEMENT_NODE){\n" +
-                    "    const el = node;\n" +
-                    "    if (el.matches('style, script, sup, table, figure, .IPA, .nowrap')) return null;\n" +
-                    "    if (el.tagName && el.tagName.toLowerCase() === 'a'){\n" +
-                    "      const href = el.getAttribute('href') || '';\n" +
-                    "      const okHref = href.startsWith('/wiki/') && !href.includes(':') && !href.includes('#');\n" +
-                    "      if (okHref && depth === 0 && !isItalic(el)) return href;\n" +
-                    "    }\n" +
-                    "    for (let child of el.childNodes){\n" +
-                    "      const found = scanNode(child);\n" +
-                    "      if (found) return found;\n" +
-                    "    }\n" +
-                    "  }\n" +
-                    "  return null;\n" +
-                    "}\n" +
-                    "for (let b of blocks){\n" +
-                    "  const found = scanNode(b);\n" +
-                    "  if (found) return found;\n" +
-                    "}\n" +
-                    "return null;";
+            """
+                    const content = document.querySelector('#mw-content-text');
+                    if (!content) return null;
+                    const clone = content.cloneNode(true);
+                    const blacklistSelectors = [
+                      '.infobox', '.vertical-navbox', '.navbox', '.toc', '.thumb', '.references', '.reflist',
+                      '.hatnote', '.metadata', '.mw-empty-elt', 'table', 'style', 'sup.reference', '.ambox'
+                    ];
+                    blacklistSelectors.forEach(sel => clone.querySelectorAll(sel).forEach(e => e.remove()));
+                    function isItalic(el){
+                      while (el) {
+                        const tag = el.tagName ? el.tagName.toLowerCase() : '';
+                        const style = el.ownerDocument.defaultView.getComputedStyle(el);
+                        if (tag === 'i' || tag === 'em' || style.fontStyle === 'italic') return true;
+                        el = el.parentElement;
+                      }
+                      return false;
+                    }
+                    const blocks = clone.querySelectorAll('p, ul, ol');
+                    let depth = 0;
+                    function scanNode(node){
+                      if (node.nodeType === Node.TEXT_NODE){
+                        const t = node.textContent;
+                        for (let ch of t){ if (ch === '(') depth++; else if (ch === ')' && depth>0) depth--; }
+                      } else if (node.nodeType === Node.ELEMENT_NODE){
+                        const el = node;
+                        if (el.matches('style, script, sup, table, figure, .IPA, .nowrap')) return null;
+                        if (el.tagName && el.tagName.toLowerCase() === 'a'){
+                          const href = el.getAttribute('href') || '';
+                          const okHref = href.startsWith('/wiki/') && !href.includes(':') && !href.includes('#');
+                          if (okHref && depth === 0 && !isItalic(el)) return href;
+                        }
+                        for (let child of el.childNodes){
+                          const found = scanNode(child);
+                          if (found) return found;
+                        }
+                      }
+                      return null;
+                    }
+                    for (let b of blocks){
+                      const found = scanNode(b);
+                      if (found) return found;
+                    }
+                    return null;""";
 }
