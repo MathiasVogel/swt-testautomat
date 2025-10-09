@@ -15,9 +15,6 @@ import java.util.Objects;
 
 public class WikiPhilosophyFirefox {
 
-    /**
-     * Testbare Kernlogik: führt das Spiel aus und liefert Reason + Pfad zurück.
-     */
     public static Result runGame(String startUrl, int maxSteps, boolean headless) {
         FirefoxOptions options = new FirefoxOptions();
         if (headless) options.addArguments("-headless");
@@ -37,12 +34,10 @@ public class WikiPhilosophyFirefox {
                 lastTitle = extractArticleTitle(driver.getTitle());
                 path.add(currentUrl);
 
-                // 1) Titel exakt "Philosophie"
                 if ("philosophie".equalsIgnoreCase(lastTitle)) {
                     return new Result(Reason.TITLE_EXACT, path, step, lastTitle);
                 }
 
-                // 2) h1 oder h2 enthält "Philosophie" (case-insensitive)
                 boolean headingContains = Boolean.TRUE.equals(
                         ((JavascriptExecutor) driver).executeScript(
                                 "return Array.from(document.querySelectorAll('h1, h2'))" +
@@ -53,12 +48,10 @@ public class WikiPhilosophyFirefox {
                     return new Result(Reason.H1H2_CONTAINS, path, step, lastTitle);
                 }
 
-                // 3) Max Steps?
                 if (step == maxSteps) {
                     return new Result(Reason.MAX_STEPS, path, step, lastTitle);
                 }
 
-                // Nächsten gültigen Link im Fließtext finden
                 String nextHref = (String) ((JavascriptExecutor) driver).executeScript(FIRST_VALID_LINK_FINDER_JS);
                 if (nextHref == null || nextHref.isEmpty()) {
                     return new Result(Reason.NO_LINK, path, step, lastTitle);
@@ -77,11 +70,8 @@ public class WikiPhilosophyFirefox {
         } finally {
             driver.quit();
         }
-        // Fallback (sollte nicht erreicht werden)
         return new Result(Reason.MAX_STEPS, path, step, lastTitle);
     }
-
-    // -- Hilfsfunktionen & JS (unverändert) --
 
     private static String extractArticleTitle(String pageTitle) {
         if (pageTitle == null) return "";
