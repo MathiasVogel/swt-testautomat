@@ -35,7 +35,7 @@ public class WikiPhilosophyFirefox {
                 path.add(currentUrl);
 
                 if ("philosophie".equalsIgnoreCase(lastTitle)) {
-                    return new Result(Reason.TITLE_EXACT, path, step, lastTitle);
+                    return new Result(Reason.TITLE_EXACT, path, step, lastTitle, startUrl);
                 }
 
                 boolean headingContains = Boolean.TRUE.equals(
@@ -45,16 +45,16 @@ public class WikiPhilosophyFirefox {
                         )
                 );
                 if (headingContains) {
-                    return new Result(Reason.H1H2_CONTAINS, path, step, lastTitle);
+                    return new Result(Reason.H1H2_CONTAINS, path, step, lastTitle, startUrl);
                 }
 
                 if (step == maxSteps) {
-                    return new Result(Reason.MAX_STEPS, path, step, lastTitle);
+                    return new Result(Reason.MAX_STEPS, path, step, lastTitle, startUrl);
                 }
 
                 String nextHref = (String) ((JavascriptExecutor) driver).executeScript(FIRST_VALID_LINK_FINDER_JS);
                 if (nextHref == null || nextHref.isEmpty()) {
-                    return new Result(Reason.NO_LINK, path, step, lastTitle);
+                    return new Result(Reason.NO_LINK, path, step, lastTitle, startUrl);
                 }
 
                 if (nextHref.startsWith("/")) {
@@ -66,11 +66,11 @@ public class WikiPhilosophyFirefox {
                 driver.navigate().to(nextHref);
             }
         } catch (Throwable t) {
-            return new Result(Reason.ERROR, path, Math.max(step, 0), lastTitle);
+            return new Result(Reason.ERROR, path, Math.max(step, 0), lastTitle, startUrl);
         } finally {
             driver.quit();
         }
-        return new Result(Reason.MAX_STEPS, path, step, lastTitle);
+        return new Result(Reason.MAX_STEPS, path, step, lastTitle, startUrl);
     }
 
     private static String extractArticleTitle(String pageTitle) {
