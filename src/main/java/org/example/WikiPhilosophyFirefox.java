@@ -32,7 +32,12 @@ public class WikiPhilosophyFirefox {
                 wait.until(ExpectedConditions.presenceOfElementLocated(By.cssSelector("#mw-content-text")));
                 String currentUrl = driver.getCurrentUrl();
                 lastTitle = extractArticleTitle(driver.getTitle());
-                path.add(currentUrl);
+                if (!path.contains(currentUrl)) {
+                    path.add(currentUrl);
+                } else {
+                    path.add(currentUrl);
+                    return new Result(Reason.LOOP, path, step, lastTitle, startUrl);
+                }
 
                 if ("philosophie".equalsIgnoreCase(lastTitle)) {
                     return new Result(Reason.TITLE_EXACT, path, step, lastTitle, startUrl);
@@ -47,6 +52,7 @@ public class WikiPhilosophyFirefox {
                 if (headingContains) {
                     return new Result(Reason.H1H2_CONTAINS, path, step, lastTitle, startUrl);
                 }
+
 
                 if (step == maxSteps) {
                     return new Result(Reason.MAX_STEPS, path, step, lastTitle, startUrl);
