@@ -1,31 +1,57 @@
 package org.example;
 
-import java.util.Arrays;
-import java.util.List;
+import org.example.config.ApplicationConfig;
+
+import java.io.IOException;
+import java.nio.file.Path;
 
 public class Main {
+    private static final String DEFAULT_CONFIG_PATH = "./config.yaml";
+
     public static void main(String[] args) {
+        String configPath = getConfigPath(args);
 
-        List<String> startUrls = Arrays.asList(args[0].split(","));
-        int maxSteps = Integer.parseInt(args[1]);
+        try {
+            Path configFile = Path.of(configPath);
+            System.out.println("Loading config from: " + configFile.toAbsolutePath());
 
-        boolean showWindows = args.length < 3;
+            var config = ApplicationConfig.fromFile(configFile);
 
-        startUrls.stream()
-                .map(url -> WikiPhilosophyFirefox.runGame(url, maxSteps, showWindows))
-                .map(Main::formatResult)
-                .forEach(System.out::println);
+            config.games.stream()
+                    .map(gameConfig -> WikiPhilosophyFirefox.runGame(
+                            gameConfig.startUrl,
+                            gameConfig.steps,
+                            config.headless))
+                    .map(Main::formatResult)
+                    .forEach(System.out::println);
+
+        } catch (IOException ex) {
+            System.err.println("Error: Config file not found at '" + configPath + "'");
+            System.err.println("Details: " + ex.getMessage());
+            System.exit(1);
+        } catch (Exception ex) {
+            System.err.println("Error: " + ex.getMessage());
+            ex.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    private static String getConfigPath(String[] args) {
+        if (args.length > 0) {
+            return args[0];
+        }
+        return DEFAULT_CONFIG_PATH;
     }
 
     private static String formatResult(Result result) {
         Reason reason = result.reason;
-        return result.startUrl + "-> " + switch (reason) {
+        return result.startUrl + " -> " + switch (reason) {
             case TITLE_EXACT -> "SUCCESS: 'Philosophie' found after %s steps".formatted(result.steps);
             case H1H2_CONTAINS -> "SUCCESS: 'Philosophie' found after %s steps".formatted(result.steps);
             case MAX_STEPS -> "WARN: Maximum number of steps exceeded";
             case NO_LINK -> "ERROR: No further link found";
             case ERROR -> "ERROR: Unknown Error";
-            case LOOP -> "WARN:  Loop detected at %s".formatted(String.join(" -> ", result.path));
+            case LOOP -> "WARN: Loop detected at %s".formatted(String.join(" -> ", result.path));
         };
     }
 }

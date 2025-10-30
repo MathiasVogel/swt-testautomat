@@ -15,6 +15,7 @@
           buildInputs = [
             pkgs.jdk
             pkgs.maven
+            pkgs.firefox
           ];
 
           shellHook = ''

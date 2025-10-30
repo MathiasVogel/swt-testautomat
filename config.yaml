@@ -1,0 +1,4 @@
+headless: true
+games:
+  - startUrl: "https://de.wikipedia.org/wiki/Bananen"
+    steps: 10
