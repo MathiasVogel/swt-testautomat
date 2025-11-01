@@ -53,14 +53,27 @@ public class WikiPhilosophyFirefox {
                     return new Result(Reason.H1H2_CONTAINS, path, step, lastTitle, startUrl);
                 }
 
-
-                if (step == maxSteps) {
-                    return new Result(Reason.MAX_STEPS, path, step, lastTitle, startUrl);
+                // Check if "Philosophie" appears as a standalone word in any p-tag within the content
+                boolean contentContains = Boolean.TRUE.equals(
+                        ((JavascriptExecutor) driver).executeScript(
+                                "const content = document.querySelector('#mw-content-text');" +
+                                "if (!content) return false;" +
+                                "const pTags = content.querySelectorAll('p');" +
+                                "const regex = /\\bphilosophie\\b/i;" +
+                                "return Array.from(pTags).some(p => regex.test(p.innerText));"
+                        )
+                );
+                if (contentContains) {
+                    return new Result(Reason.H1H2_CONTAINS, path, step, lastTitle, startUrl);
                 }
 
                 String nextHref = (String) ((JavascriptExecutor) driver).executeScript(FIRST_VALID_LINK_FINDER_JS);
                 if (nextHref == null || nextHref.isEmpty()) {
                     return new Result(Reason.NO_LINK, path, step, lastTitle, startUrl);
+                }
+
+                if (step == maxSteps) {
+                    return new Result(Reason.MAX_STEPS, path, step, lastTitle, startUrl);
                 }
 
                 if (nextHref.startsWith("/")) {

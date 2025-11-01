@@ -4,6 +4,7 @@ import org.example.config.ApplicationConfig;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.stream.Collectors;
 
 public class Main {
     private static final String DEFAULT_CONFIG_PATH = "./config.yaml";
@@ -22,7 +23,7 @@ public class Main {
                             gameConfig.startUrl,
                             gameConfig.steps,
                             config.headless))
-                    .map(Main::formatResult)
+                    .map(result -> formatResult(result, config))
                     .forEach(System.out::println);
 
         } catch (IOException ex) {
@@ -43,15 +44,24 @@ public class Main {
         return DEFAULT_CONFIG_PATH;
     }
 
-    private static String formatResult(Result result) {
+    private static String formatResult(Result result, ApplicationConfig config) {
         Reason reason = result.reason;
         return result.startUrl + " -> " + switch (reason) {
-            case TITLE_EXACT -> "SUCCESS: 'Philosophie' found after %s steps".formatted(result.steps);
-            case H1H2_CONTAINS -> "SUCCESS: 'Philosophie' found after %s steps".formatted(result.steps);
+            case TITLE_EXACT -> "SUCCESS: 'Philosophie' found after %s steps".formatted(formatSteps(result, config));
+            case H1H2_CONTAINS -> "SUCCESS: 'Philosophie' found after %s steps".formatted(formatSteps(result, config));
             case MAX_STEPS -> "WARN: Maximum number of steps exceeded";
             case NO_LINK -> "ERROR: No further link found";
             case ERROR -> "ERROR: Unknown Error";
             case LOOP -> "WARN: Loop detected at %s".formatted(String.join(" -> ", result.path));
-        };
+        } + " [" + formatVisitedPaths(result) + "]";
+    }
+
+    private static String formatSteps(Result result, ApplicationConfig config) {
+        int totalSteps = config.firstStepCounts ? result.steps : result.steps - 1;
+        return Integer.toString(totalSteps);
+    }
+
+    private static String formatVisitedPaths(Result result) {
+        return String.join(" -> ", result.path);
     }
 }

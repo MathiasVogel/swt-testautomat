@@ -1,4 +1,7 @@
 headless: true
+firstStepCounts: false
 games:
   - startUrl: "https://de.wikipedia.org/wiki/Bananen"
     steps: 10
+  - startUrl: "https://de.wikipedia.org/wiki/Apfel"
+    steps: 3

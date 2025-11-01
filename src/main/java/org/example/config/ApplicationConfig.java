@@ -9,6 +9,7 @@ import java.util.List;
 
 public class ApplicationConfig {
     public boolean headless = true;
+    public boolean firstStepCounts = false;
     public List<GameConfig> games;
 
     public static ApplicationConfig fromFile(Path path) throws IOException {
